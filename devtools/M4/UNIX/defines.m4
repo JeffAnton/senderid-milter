@@ -33,7 +33,7 @@ LDOPTS_SO= ${LDOPTS} ifdef(`confLDOPTS_SO', `confLDOPTS_SO', `-shared')
 SHELL=	confSHELL
 
 # use O=-O (usual) or O=-g (debugging)
-O=	ifdef(`confOPTIMIZE', `confOPTIMIZE', `-O')
+O=	ifdef(`confOPTIMIZE', `confOPTIMIZE', `-O1')
 
 # Object archiver
 AR=     ifdef(`confAR', `confAR', `ar')

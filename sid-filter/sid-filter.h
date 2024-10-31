@@ -16,7 +16,7 @@ static char sid_filter_h_id[] = "@(#)$Id: sid-filter.h,v 1.64 2008/06/07 21:09:2
 #include <sys/param.h>
 
 #define	SID_PRODUCT	"Sendmail Sender-ID Filter"
-#define	SID_VERSION	"1.0.0"
+#define	SID_VERSION	"1.0.1"
 
 /* make sure we have TRUE and FALSE */
 #ifndef FALSE
@@ -47,7 +47,7 @@ static char sid_filter_h_id[] = "@(#)$Id: sid-filter.h,v 1.64 2008/06/07 21:09:2
 #define	MAXCNAMEDEPTH	3
 #define	MAXHEADER	1024
 #define	MAXDEPTH	20
-#define	MAXIPADDR	15
+#define	MAXIPADDR	52
 #define MAXMXSETSZ	16
 #define	MAXPACKET	8192
 #define	HOSTUNKNOWN	"unknown-host"

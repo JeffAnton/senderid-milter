@@ -142,6 +142,15 @@ struct Header
 	struct Header *	hdr_next;
 };
 
+union sockaddr_store
+{
+	struct sockaddr saddr;
+	struct sockaddr_in sin;
+	struct sockaddr_in6 sin6;
+};
+
+#define _SOCK_ADDR_ST union sockaddr_store
+
 /*
 **  Context -- filter context
 */
@@ -154,7 +163,7 @@ struct Context
 	Header		ctx_hqtail;		/* header queue tail */
 	Header		ctx_pra;		/* PRA header */
 	char *		ctx_jobid;		/* job ID */
-	_SOCK_ADDR	ctx_addr;		/* client IP information */
+	_SOCK_ADDR_ST	ctx_addr;		/* client IP information */
 	sm_marid *	ctx_marid;		/* libmarid handle */
 	SMFICTX *	ctx_milter;		/* milter context */
 	char		ctx_mariderr[BUFRSZ + 1];
@@ -584,7 +593,6 @@ sid_decode_a(unsigned char *ansbuf, size_t anslen, int *rcount,
 	unsigned char *cp;
 	unsigned char *eom;
 	char qname[MAXHOSTNAMELEN + 1];
-	struct in_addr addr;
 	HEADER hdr;
 
 	assert(ansbuf != NULL);
@@ -632,8 +640,8 @@ sid_decode_a(unsigned char *ansbuf, size_t anslen, int *rcount,
 		GETSHORT(type, cp);
 		GETSHORT(class, cp);
 
-		if (type != T_A || class != C_IN)
-			return;
+		if (class != C_IN)
+		    return;
 
 		/* skip TTL */
 		cp += INT32SZ;
@@ -643,15 +651,20 @@ sid_decode_a(unsigned char *ansbuf, size_t anslen, int *rcount,
 			return;
 		GETSHORT(n, cp);
 
-		/* make sure it's enough */
-		if (n < INT32SZ)
+		if (type == T_A) {
+		    /* make sure it's enough */
+		    if (n < INT32SZ)
 			return;
 
-		memcpy(&addr.s_addr, cp, INT32SZ);
-		cp += INT32SZ;
-		/* XXX -- not thread-safe! (yet) */
-		sm_strlcpy(mreplies[*rcount], inet_ntoa(addr),
-		           MARIDREPLYSZ);
+		    inet_ntop(AF_INET, cp, mreplies[*rcount], MARIDREPLYSZ);
+		    cp += INT32SZ;
+		} else if (type == T_AAAA) {
+		    if (n < 16)
+			return;
+		    inet_ntop(AF_INET6, cp, mreplies[*rcount], MARIDREPLYSZ);
+		    cp += 16;
+		} else
+		    return;
 
 		*rcount = *rcount + 1;
 		ancount--;
@@ -693,6 +706,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 	int n;
 	int s;
 	int nmx;
+	int isip6;
 	size_t anslen;
 	const char *dd;
 	char *at;
@@ -712,7 +726,6 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 #if USE_ARLIB
 	struct timeval timeout;
 #endif /* USE_ARLIB */
-	struct in_addr inaddr;
 	HEADER hdr;
 
 	assert(sic != NULL);
@@ -724,6 +737,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 	assert(expl != NULL);
 
 	queries = 0;
+	isip6 = sic->ctx_addr.saddr.sa_family == AF_INET6;
 
 	/* allocate MARID handle */
 	sic->ctx_marid = sm_marid_new(sic, sid_marid_log, NULL, NULL);
@@ -779,7 +793,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 
 		  case SM_MARID_ADDR:
 		  case SM_MARID_A:
-			type = T_A;
+		        type = isip6 ? T_AAAA : T_A;
 			break;
 
 		  case SM_MARID_MX:
@@ -1185,11 +1199,13 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 				break;
 
 			  case T_A:
-				memcpy(&inaddr.s_addr, cp, INT32SZ);
+				inet_ntop(AF_INET, cp, mreplies[rcount], MARIDREPLYSZ);
 				cp += INT32SZ;
-				/* XXX -- not thread-safe! (yet) */
-				sm_strlcpy(mreplies[rcount], inet_ntoa(inaddr),
-				           MARIDREPLYSZ);
+				break;
+
+			  case T_AAAA:
+				inet_ntop(AF_INET6, cp, mreplies[rcount], MARIDREPLYSZ);
+				cp += 16;
 				break;
 
 			  case T_PTR:
@@ -1387,7 +1403,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 			timeout.tv_sec = tmo;
 			timeout.tv_usec = 0;
 			errno = 0;
-			q[n] = ar_addquery(ar, mxes[n], C_IN, T_A,
+			q[n] = ar_addquery(ar, mxes[n], C_IN, isip6 ? T_AAAA : T_A,
 			                   MAXCNAMEDEPTH, sic->ctx_ansbuf[n],
 			                   sizeof sic->ctx_ansbuf[n],
 			                   &error[n],
@@ -1410,7 +1426,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 				return -2;
 			}
 #else /* USE_ARLIB */
-			status = res_query(mxes[n], C_IN, T_A,
+			status = res_query(mxes[n], C_IN, isip6 ? T_AAAA : T_A,
 			                   sic->ctx_ansbuf[n],
 			                   sizeof sic->ctx_ansbuf[n]);
 			if (status == -1)
@@ -2063,6 +2079,7 @@ mlfi_eoh(SMFICTX *ctx)
 		if (nopraok)
 		{
 			sic->ctx_nopra = TRUE;
+			return SMFIS_CONTINUE;
 		}
 		else
 		{
@@ -2095,6 +2112,7 @@ mlfi_eoh(SMFICTX *ctx)
 		if (nopraok)
 		{
 			sic->ctx_nopra = TRUE;
+			return SMFIS_CONTINUE;
 		}
 		else
 		{
@@ -2111,10 +2129,6 @@ mlfi_eoh(SMFICTX *ctx)
 			return (testmode ? SMFIS_ACCEPT : SMFIS_REJECT);
 		}
 	}
-
-	/* short-circuit */
-	if (sic->ctx_nopra)
-		return SMFIS_CONTINUE;
 
 	/* if the responsible domain is one we trust, just accept */
 	if (domains != NULL)
@@ -2203,13 +2217,19 @@ mlfi_eom(SMFICTX *ctx)
 
 	/* text-ize the IP address */
 	memset(ip, '\0', sizeof ip);
-	if (sic->ctx_addr.sa_family == AF_INET)
+	if (sic->ctx_addr.saddr.sa_family == AF_INET6)
+	{
+		struct sockaddr_in6 *sin6;
+
+		sin6 = &sic->ctx_addr.sin6;
+		inet_ntop(sin6->sin6_family, &sin6->sin6_addr, ip, sizeof ip);
+	}
+	if (sic->ctx_addr.saddr.sa_family == AF_INET)
 	{
 		struct sockaddr_in *sin;
 
-		sin = (struct sockaddr_in *) &sic->ctx_addr;
-		/* XXX -- not thread-safe!!! (yet) */
-		sm_strlcpy(ip, inet_ntoa(sin->sin_addr), sizeof ip);
+		sin = &sic->ctx_addr.sin;
+		inet_ntop(sin->sin_family, &sin->sin_addr, ip, sizeof ip);
 	}
 
 	/*
@@ -3045,6 +3065,9 @@ main(int argc, char **argv)
 			bestguess = TRUE;
 			break;
 
+		  case 'c':
+			nopraok = TRUE;
+			break;
 
 		  case 'D':
 			softdns = TRUE;

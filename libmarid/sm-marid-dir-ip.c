@@ -57,6 +57,11 @@ sm_marid_dir_ip4(sm_marid *context, sm_marid_expression const *expr)
 		return 1;
 	}
 
+	// only match ipv4 addresses
+	if (sm_marid_ip_version(smf->smf_query_ip,
+		smf->smf_query_ip + strlen(smf->smf_query_ip)) != '4')
+		return 0;
+
 	if (sm_marid_scan_cidr(s, &e, &smf->smf_cidr_ip4, NULL)
 	   || sm_marid_ip_canon(s, e, ip4, &ip4_n))
 	{
@@ -68,17 +73,30 @@ sm_marid_dir_ip4(sm_marid *context, sm_marid_expression const *expr)
 		sm_marid_check_host_deliver_result(context);
 		return 1;
 	}
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip4 canon n %d val %u cidr %d", ip4_n, *(unsigned long *)ip4, smf->smf_cidr_ip4);
 	if (sm_marid_ip_canon(smf->smf_query_ip,
 		smf->smf_query_ip + strlen(smf->smf_query_ip),
 		qry, &qry_n))
 	{
 		sm_marid_log(context, SM_MARID_LOG_FAIL,
-			"*** ip4: syntax error in IP address \"%s\" ***",
+			"*** ip4: (second) syntax error in IP address \"%s\" ***",
 			smf->smf_query_ip);
 
 		smf->smf_result = SM_MARID_PERM_ERROR;
 		sm_marid_check_host_deliver_result(context);
 		return 1;
+	}
+
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip4 (second) canon n %d val %u", qry_n, *(unsigned long *)qry);
+
+	if (smf->smf_cidr_ip4 < 9)
+	{
+	    // cidr < 9 indicates fowl play
+	    sm_marid_log(context, SM_MARID_LOG_DEBUG, "low cidr block");
+	    smf->smf_result = SM_MARID_FAIL;
+	    smf->smf_reason = SM_MARID_NOT_PERMITTED;
+	    sm_marid_check_host_deliver_result(context);
+	    return 1;
 	}
 
 	if (  qry_n == ip4_n
@@ -130,13 +148,32 @@ sm_marid_dir_ip6(sm_marid *context, sm_marid_expression const *expr)
 			+ strlen(smf->smf_query_ip),
 		qry, &qry_n))
 	{
+		if (s && e)
+		    sm_marid_log(context, SM_MARID_LOG_FAIL,
+			    "*** ip6: syntax error in IP dir address \"%.*s\" ***",
+			    e - s, s);
 		sm_marid_log(context, SM_MARID_LOG_FAIL,
-			"*** ip6: syntax error in IP address \"%s\" ***",
+			"*** ip6: syntax error in IP qry address \"%s\" ***",
 			smf->smf_query_ip);
+
+		sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip bad dir n %d val %u", ip6_n, *(unsigned long *)ip6);
+		sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip bad qry n %d val %u", qry_n, *(unsigned long *)qry);
 
 		smf->smf_result = SM_MARID_PERM_ERROR;
 		sm_marid_check_host_deliver_result(context);
 		return 1;
+	}
+
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip ip6 n %d val %u", ip6_n, *(unsigned long *)ip6);
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip qry n %d val %u", qry_n, *(unsigned long *)qry);
+
+	if (smf->smf_cidr_ip6 < 16)
+	{
+	    /* cidr < 16 indicates fowl play */
+	    sm_marid_log(context, SM_MARID_LOG_DEBUG, "low cidr block");
+	    smf->smf_reason = SM_MARID_NOT_PERMITTED;
+	    sm_marid_check_host_deliver_result(context);
+	    return 1;
 	}
 
 	if (  qry_n == ip6_n

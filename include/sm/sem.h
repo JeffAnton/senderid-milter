@@ -20,6 +20,7 @@
 # define SM_NO_SEM(id)	((id) < 0)
 
 # if SM_CONF_SEM > 0
+#  define _WANT_SEMUN 1
 #  include <sys/types.h>
 #  include <sys/ipc.h>
 #  include <sys/sem.h>

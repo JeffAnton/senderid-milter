@@ -41,6 +41,8 @@ sm_marid_dir_all(sm_marid *context, sm_marid_expression const *expr)
 	else
 	{
 		smf->smf_result = expr->smx_prefix;
+		if (smf->smf_result == SM_MARID_PASS)
+			smf->smf_result = SM_MARID_FAIL;
 		if (smf->smf_result == SM_MARID_FAIL)
 			smf->smf_reason = SM_MARID_NOT_PERMITTED;
 	}

@@ -1,9 +1,17 @@
 			SID-MILTER RELEASE NOTES
-      $Id: RELEASE_NOTES,v 1.78 2008/06/07 21:10:26 msk Exp $
 
 
 This listing shows the versions of the sid-milter package, the date of
 release, and a summary of the changes in that release.
+
+1.0.0.jaa or 1.0.1 2017/01/15
+	Branch/Fork modification by Jeff Anton
+
+	Fix numerious problems with ipv6 support
+	Fail 'abusive' spf records with CIDR < 9
+	Applied PATCH1 from 1.0.0
+	Probably other changes I've not kept track of
+		antonsfge@hesiod.org
 
 1.0.0		2008/06/07
 	Update to the latest Authentication-Results header format.

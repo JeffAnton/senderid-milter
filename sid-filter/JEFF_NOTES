@@ -1,0 +1,17 @@
+sid-filter.c doesn't work with ip6 must at all and it should...
+Mostly fixed!
+
+IPv6 Strings can be longer than 15 chars...  See MAXIPADDR...
+FIXED
+
+IPv6 address string needs to be generated in sid-filter.c
+YEAH!
+
+ctx_addr is struct sockaddr which is not large enough for sockaddr_in6
+FIXED
+
+ip4 syntax error on ip6 addresses...  should not match...
+FIXED
+
+ip6 address parseing does not understand : addresses at all...
+FIXED

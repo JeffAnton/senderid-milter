@@ -23,7 +23,7 @@ typedef unsigned long cmap_elem_type;
 #define RFC2822_ERR_SUNBALANCED	 	3	/* unbalanced sq. brackets */
 
 /* a bitmap for the "specials" character class */
-#define	CMAP_NBITS	 	(sizeof(cmap_elem_type) * CHAR_BIT)
+#define	CMAP_NBITS	 	(sizeof(cmap_elem_type) * 8) /* CHAR_BIT */
 #define	CMAP_NELEMS	  	((1 + UCHAR_MAX) / CMAP_NBITS)
 #define	CMAP_INDEX(i)		((unsigned char)(i) / CMAP_NBITS)
 #define	CMAP_BIT(i)  		(1 << (unsigned char)(i) % CMAP_NBITS)

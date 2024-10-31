@@ -58,6 +58,7 @@ sm_marid_dir_a_dns_result(
 		sm_marid_check_host_deliver_result(context);
 		return;
 	}
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip a canon n %d val %u", canon_ip_n, *(unsigned long *)canon_ip);
 
 	if (err == 0)
 		for (i = 0; i < vec_n; i++)
@@ -77,8 +78,20 @@ sm_marid_dir_a_dns_result(
 				sm_marid_check_host_deliver_result(context);
 				return;
 			}
+	sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip a (second) canon n %d val %u", canon_rec_n, *(unsigned long *)canon_rec);
 			if (canon_ip_n != canon_rec_n)
 				continue;
+
+			/* cidr of < 9 indicates fowl play */
+			if ( 9 > (canon_ip_n == 4 ? smf->smf_cidr_ip4
+				   : smf->smf_cidr_ip6 ) )
+			{
+			    sm_marid_log(context, SM_MARID_LOG_DEBUG, "ip a cidr low");
+			    smf->smf_result = SM_MARID_FAIL;
+			    smf->smf_reason = SM_MARID_NOT_PERMITTED;
+			    sm_marid_check_host_deliver_result(context);
+			    return;
+			}
 
 			if (sm_marid_ip_eq(
 				canon_ip, canon_rec, canon_ip_n,
@@ -118,20 +131,13 @@ sm_marid_dir_a(sm_marid *context, sm_marid_expression const *expr)
 	smf = context->sm_frame;
 
 	/* Scan trailing cidr length(s) */
-	if (  (s = expr->smx_cidr_s) != NULL
-	   && (e = expr->smx_cidr_e) != NULL)
-	{
-		sm_marid_scan_cidr(s, &e, &smf->smf_cidr_ip4,
-					  &smf->smf_cidr_ip6);
-	}
-	else
-	{
-		smf->smf_cidr_ip4 = 32;
-		smf->smf_cidr_ip6 = 128;
-	}
-
+	smf->smf_cidr_ip4 = 32;
+	smf->smf_cidr_ip6 = 128;
 	s = expr->smx_value_s;
 	e = expr->smx_value_e;
+	if ( s && e && sm_marid_scan_cidr(s, &e, &smf->smf_cidr_ip4,
+					  &smf->smf_cidr_ip6) )
+		e = expr->smx_value_e;
 
 	/* Expand the value of the right-hand side */
 	tmp = sm_marid_domain_spec(context, s, e);

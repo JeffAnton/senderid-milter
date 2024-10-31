@@ -121,33 +121,6 @@ sid_lowercase(char *str)
 }
 
 /*
-**  SID_INET_NTOA -- thread-safe inet_ntoa()
-**
-**  Parameters:
-**  	a -- (struct in_addr) to be converted
-**  	buf -- destination buffer
-**  	buflen -- number of bytes at buf
-**
-**  Return value:
-**  	Size of the resultant string.  If the result is greater than buflen,
-**  	then buf does not contain the complete result.
-*/
-
-size_t
-sid_inet_ntoa(struct in_addr a, char *buf, size_t buflen)
-{
-	in_addr_t addr;
-
-	assert(buf != NULL);
-
-	addr = ntohl(a.s_addr);
-
-	return snprintf(buf, buflen, "%d.%d.%d.%d",
-	                (addr >> 24), (addr >> 16) & 0xff,
-	                (addr >> 8) & 0xff, addr & 0xff);
-}
-
-/*
 **  SID_LIST_LOOKUP -- look up a name in a peerlist
 **
 **  Parameters:
@@ -170,7 +143,7 @@ sid_list_lookup(Peer list, char *data)
 	for (current = list; current != NULL; current = current->peer_next)
 	{
 		if (strcasecmp(data, current->peer_info) == 0)
-			out = current->peer_neg;
+			out = !current->peer_neg;
 	}
 
 	return out;
@@ -237,16 +210,13 @@ sid_checkip(Peer list, struct sockaddr *ip)
 	if (ip->sa_family == AF_INET6)
 	{
 		struct sockaddr_in6 sin6;
-		struct in6_addr addr;
 
 		memcpy(&sin6, ip, sizeof sin6);
 
-		memcpy(&addr, &sin6.sin6_addr, sizeof addr);
-
-		if (IN6_IS_ADDR_V4MAPPED(&addr))
+		if (IN6_IS_ADDR_V4MAPPED(&sin6.sin6_addr))
 		{
 			inet_ntop(AF_INET,
-			          &addr.s6_addr[INET6_ADDRSTRLEN - INET_ADDRSTRLEN],
+			  &sin6.sin6_addr.s6_addr[INET6_ADDRSTRLEN - INET_ADDRSTRLEN],
 			          ipbuf, sizeof ipbuf);
 		}
 		else
@@ -266,7 +236,7 @@ sid_checkip(Peer list, struct sockaddr *ip)
 
 			dst += sz;
 			dst_len -= sz;
-			inet_ntop(AF_INET6, &addr, dst, dst_len);
+			inet_ntop(AF_INET6, &sin6.sin6_addr, dst, dst_len);
 		}
 
 		return (sid_list_lookup(list, ipbuf));
@@ -292,7 +262,8 @@ sid_checkip(Peer list, struct sockaddr *ip)
 		for (node = list; node != NULL; node = node->peer_next)
 		{
 			/* try the IP direct match */
-			(void) sid_inet_ntoa(addr, ipbuf, sizeof ipbuf);
+			(void) inet_ntop(AF_INET, &addr.s_addr,
+				ipbuf, sizeof ipbuf);
 			if (strcmp(ipbuf, node->peer_info) == 0)
 			{
 				out = !node->peer_neg;

@@ -1,0 +1,2 @@
+         define(`confOPTIMIZE',`-O')
+dnl

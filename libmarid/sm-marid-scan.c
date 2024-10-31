@@ -132,38 +132,6 @@ sm_marid_scan_expression(
 		expr_out->smx_value_s = s + 1;
 		expr_out->smx_value_e = x;
 	}
-	else
-	{
-		if (s < x)
-		{
-			if (*s != '/')
-			{
-				*s_inout = e;
-				return -1;
-			}
-			expr_out->smx_cidr_s = s;
-			for (;;)
-			{
-				s++;
-				if (s >= x || !SM_MARID_IS_DIGIT(*s))
-				{
-					*s_inout = e;
-					return -1;
-				}
-				while (s < x && SM_MARID_IS_DIGIT(*s))
-					s++;
-				if (s == x)
-					break;
-				if (*s != '/')
-				{
-					*s_inout = e;
-					return -1;
-				}
-			}
-			expr_out->smx_cidr_e = s;
-			s = x;
-		}
-	}
 
 	while (x < e && *x == ' ')
 		x++;
