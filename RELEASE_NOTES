@@ -4,7 +4,11 @@
 This listing shows the versions of the sid-milter package, the date of
 release, and a summary of the changes in that release.
 
-1.0.0.jaa or 1.0.1 2017/01/15
+1.1.0		2024/11/01
+	Minor build changes and work to move to github
+	Update various NOTES files
+
+1.0.1		2017/01/15
 	Branch/Fork modification by Jeff Anton
 
 	Fix numerious problems with ipv6 support

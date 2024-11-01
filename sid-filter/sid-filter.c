@@ -712,7 +712,7 @@ sid_marid_check(Context sic, int scope, char *ip, char *addr, int *result,
 	char *at;
 	unsigned char *eom;
 	unsigned char *cp;
-	unsigned char *p;
+	char *p;
 #if USE_ARLIB
 	AR_QUERY q[MARIDREPLIES];
 	int error[MARIDREPLIES];

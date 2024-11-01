@@ -9,14 +9,10 @@
 #ifndef _SID_FILTER_H_
 #define _SID_FILTER_H_
 
-#ifndef lint
-static char sid_filter_h_id[] = "@(#)$Id: sid-filter.h,v 1.64 2008/06/07 21:09:26 msk Exp $";
-#endif /* !lint */
-
 #include <sys/param.h>
 
 #define	SID_PRODUCT	"Sendmail Sender-ID Filter"
-#define	SID_VERSION	"1.0.1"
+#define	SID_VERSION	"1.1.0"
 
 /* make sure we have TRUE and FALSE */
 #ifndef FALSE
