@@ -12,7 +12,7 @@
 #include <sys/param.h>
 
 #define	SID_PRODUCT	"Sendmail Sender-ID Filter"
-#define	SID_VERSION	"1.1.0"
+#define	SID_VERSION	"1.1.1"
 
 /* make sure we have TRUE and FALSE */
 #ifndef FALSE

@@ -4,6 +4,9 @@
 This listing shows the versions of the sid-milter package, the date of
 release, and a summary of the changes in that release.
 
+1.1.1		2024/12/15
+	libar: When using IPv6 UDP, set V6ONLY socket option
+
 1.1.0		2024/11/01
 	Minor build changes and work to move to github
 	Update various NOTES files

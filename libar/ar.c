@@ -733,7 +733,17 @@ ar_sendquery(AR_LIB lib, AR_QUERY query)
 			lib->ar_nsfd = socket(sa->sa_family,
 			                      SOCK_DGRAM, 0);
 			if (lib->ar_nsfd != -1)
+			{
 				lib->ar_nsfdpf = sa->sa_family;
+#ifdef AF_INET6
+				if (sa->sa_family == AF_INET6)
+				{
+				    int one = 1;
+				    setsockopt(lib->ar_nsfd, IPPROTO_IPV6,
+					       IPV6_V6ONLY, &one, sizeof one);
+				}
+#endif /* AT_INET6 */
+			}
 		}
 
 #ifdef AF_INET6
@@ -1370,6 +1380,14 @@ ar_init(ar_malloc_t user_malloc, ar_free_t user_free, void *user_closure,
 			if (new->ar_nsfd != -1)
 			{
 				new->ar_nsfdpf = sa->sa_family;
+#ifdef AF_INET6
+				if (sa->sa_family == AF_INET6)
+				{
+				    int one = 1;
+				    setsockopt(new->ar_nsfd, IPPROTO_IPV6,
+					       IPV6_V6ONLY, &one, sizeof one);
+				}
+#endif /* AT_INET6 */
 				break;
 			}
 		}
